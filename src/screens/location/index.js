@@ -1,93 +1,60 @@
-import React, {useEffect} from 'react';
-import {
-  Text,
-  View,
-  PermissionsAndroid,
-  SafeAreaView,
-  Platform,
-  Linking,
-} from 'react-native';
-// import {
-//   check,
-//   request,
-//   PERMISSIONS,
-//   RESULTS,
-//   Permission,
-// } from 'react-native-permissions';
-// import {check, request, PERMISSIONS, RESULTS} from 'react-native-permissions';
+// by chatgpt
 
-const Location = () => {
-  const openAppSettings = () => {
-    if (Platform.OS === 'ios') {
-      Linking.openURL('app-settings:');
-    } else {
-      Linking.openSettings();
-    }
-  };
+import React, {useEffect, useState} from 'react';
+import {PermissionsAndroid, Platform, Text} from 'react-native';
+import Geolocation from 'react-native-geolocation-service';
 
-  // useEffect(() => {
-
-  // const requestLocationPermission = async () => {
-  //   try {
-  //     const status = await check(PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION); // Change to appropriate permission for Android
-  //     console.log('status', status);
-
-  //     if (status === RESULTS.GRANTED) {
-  //       console.log('status === RESULTS.GRANTED', status === RESULTS.GRANTED);
-  //       // Permission already granted
-  //       // Proceed with using location data
-  //     } else if (status === RESULTS.DENIED) {
-  //       console.log('status === RESULTS.DENIED', status === RESULTS.DENIED);
-  //       const requestStatus = await request(
-  //         PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION,
-  //       ); // Change to appropriate permission for Android
-
-  //       console.log('requestStatus', requestStatus);
-  //       if (requestStatus === RESULTS.GRANTED) {
-  //         // Permission granted
-  //         // Proceed with using location data
-  //       } else if (requestStatus === RESULTS.DENIED) {
-  //         // Permission denied
-  //         // Display a message or handle the denial gracefully
-  //       } else if (requestStatus === RESULTS.NEVER_ASK_AGAIN) {
-  //         // Permission denied with "Never ask again" activated
-  //         // Guide the user to app settings to enable the permission manually
-  //         openAppSettings();
-  //       }
-  //     }
-  //   } catch (error) {
-  //     // Handle error
-  //   }
-  // };
-
-  // requestLocationPermission();
-
+const LocationTrackingComponent = () => {
+  const [latitude, setLatitude] = useState(0);
+  const [longitude, setLongitude] = useState(0);
   useEffect(() => {
-    if (Platform.OS === 'android') {
-      PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-        {
-          title: 'Access Location',
-          message: 'App wants to view your phone contacts.',
-          buttonPositive: 'Please accept bare mortal',
-        },
-      ).then(androidContactPermission => {
-        if (androidContactPermission === PermissionsAndroid.RESULTS.GRANTED) {
-          console.log('Location Permission granted');
-        } else {
-          console.log('Location permission denied', androidContactPermission);
+    let watchId = null;
+
+    const startLocationTracking = async () => {
+      try {
+        if (Platform.OS === 'android') {
+          const granted = await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+          );
+          if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+            console.log('Location permission denied');
+            return;
+          }
         }
-      });
-    }
+
+        watchId = Geolocation.watchPosition(
+          position => {
+            console.log('Latitude:', position.coords.latitude);
+            console.log('Longitude:', position.coords.longitude);
+            setLatitude(position.coords.latitude);
+            setLongitude(position.coords.longitude);
+          },
+          error => {
+            console.log('Location tracking error:', error);
+          },
+          {enableHighAccuracy: true, distanceFilter: 100}, // Customize options as needed
+        );
+      } catch (error) {
+        console.log('Location tracking error:', error);
+      }
+    };
+
+    startLocationTracking();
+
+    return () => {
+      if (watchId !== null) {
+        Geolocation.clearWatch(watchId);
+      }
+    };
   }, []);
 
   return (
-    <SafeAreaView>
-      <View>
-        <Text>Location</Text>
-      </View>
-    </SafeAreaView>
+    <>
+      <Text>Location </Text>
+      <Text>Latitude : {latitude}</Text>
+      <Text>Longitude : {longitude}</Text>
+    </>
   );
 };
 
-export default Location;
+export default LocationTrackingComponent;
